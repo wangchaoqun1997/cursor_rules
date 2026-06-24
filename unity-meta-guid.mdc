@@ -1,0 +1,36 @@
+---
+description: Unity .meta 的 guid 必须为 32 位小写十六进制，禁止位数错误（VRBoardCast）
+globs: "**/*.meta"
+alwaysApply: true
+---
+
+# Unity `.meta` 的 `guid` 格式
+
+## 硬约束
+
+新建或修改 `.meta` 时，`guid:` **必须**满足：
+
+| 项 | 要求 |
+|----|------|
+| 长度 | **恰好 32** 个字符 |
+| 字符集 | `0-9`、`a-f`（**小写**） |
+| 禁止 | 不足/超过 32 位、含 `g` 以上字母、带连字符、占位串如 `0123456789abcdef` 凑数 |
+
+## 示例
+
+```yaml
+# ❌ 错误（仅 29 位，Unity 无法正确识别）
+guid: f6a7b8c9012345678abcdef012345
+
+# ✅ 正确（32 位 hex）
+guid: 4bb39a07f840371498b65cae82beeb8d
+```
+
+## 生成方式
+
+- 优先让 **Unity 编辑器** 在导入资源时自动生成 `.meta`（不要手写 guid）。
+- 若必须新建 `.meta`：用 32 位随机 hex（如 PowerShell `[guid]::NewGuid().ToString("N")`），**生成后数一遍是否为 32 位**再写入。
+
+## 与场景规则的关系
+
+遵守 `unity-scene-no-direct-edit.mdc` 不直接改场景时，仍可能新增脚本 `.meta`；新增脚本的 guid 同样必须符合本节。

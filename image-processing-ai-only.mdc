@@ -1,0 +1,33 @@
+---
+description: 图片处理默认用大模型（GenerateImage），禁止本地 Python/Pillow 等，除非用户明示
+alwaysApply: true
+---
+
+# 图片处理：一律用大模型
+
+凡涉及**图片生成、编辑、改色、换背景、合成、风格化**等视觉处理任务，**默认且必须**使用 Cursor **大模型图片能力**（`GenerateImage`），**禁止**用本地脚本或命令行工具处理，**除非用户在本轮对话中明确允许**。
+
+## 禁止（默认）
+
+- Python + Pillow / OpenCV / numpy 等本地图像脚本
+- ImageMagick、`magick`、`convert`
+- PowerShell / Node / 其它本地批量抠图、换背景、调色脚本
+- 以「更快」「更精确」为由自行改用本地处理
+
+## 必须（默认）
+
+- 使用 **`GenerateImage`**，在 `description` 中写清：保留什么、改什么、颜色/透明度/高光等要求
+- 编辑已有图时，传入 **`reference_image_paths`** 指向源文件（绝对路径）
+- 输出文件名与任务语义一致，优先保存到 `tools/`（或用户指定目录）
+
+## 例外（仅用户明示时）
+
+用户在本轮明确说例如「用 Python 处理」「用 Pillow」「用 ImageMagick」「本地脚本即可」时，才可用本地工具；并在回复中说明是**按用户明示破例**。
+
+## 示例
+
+| 用户说 | 做法 |
+|--------|------|
+| 「这张图换成深蓝、70% 透明、边缘高光」 | `GenerateImage` + 参考原图 |
+| 「6 张图加纯黑背景，其他不变」 | `GenerateImage`（逐张或批量），**不要** `py -c "from PIL import Image..."` |
+| 「用 Python/Pillow 把背景合成黑色」 | 可用本地脚本（用户已明示） |

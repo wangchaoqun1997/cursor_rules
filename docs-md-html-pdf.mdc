@@ -1,0 +1,47 @@
+---
+description: docs 下 Markdown 转 PDF 须先转 HTML 再转 PDF（版式与 Edge 导出）
+globs: docs/**/*.md
+alwaysApply: false
+---
+
+# docs：Markdown → HTML → PDF
+
+当用户要求将 `docs/**/*.md` 转为 PDF，或修改协议/费用类文档并需更新 PDF 时，**必须**按两步流水线执行，**禁止**直接用 `pandoc`、`md-to-pdf` 等从 MD 一步出 PDF。
+
+## 流程（固定顺序）
+
+1. **MD → HTML**：根据当前 `.md` 内容更新/生成**同名** `.html`（如 `docs/软件合作协议.md` → `docs/软件合作协议.html`）。
+2. **HTML → PDF**：由 HTML 导出**同名** `.pdf`（如 `docs/软件合作协议.pdf`）。
+
+改文档时三者保持同步：**先改 md → 再改 html → 最后导出 pdf**。
+
+## HTML 版式（与现有文档一致）
+
+参照 `docs/软件服务费用明细.html`、`docs/软件合作协议.html`：
+
+- `lang="zh-CN"`，`charset=UTF-8`
+- `@page { size: A4; margin: 18mm 16mm; }`
+- 字体：`Microsoft YaHei` / `微软雅黑` / `SimSun`
+- `h1` 居中标题；`h2` 左侧蓝色竖条章节标题
+- 表格全宽、边框 `#888`、表头背景 `#edf2f7`
+- 中文合同：条款编号、表格、列表按 md 语义手写为 HTML（不依赖自动转换器保版式）
+
+## PDF 导出（Windows）
+
+使用本机 **Edge 无头模式**（勿用带页眉页脚默认样式）：
+
+```powershell
+$edge = "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"
+$html = "D:\...\docs\文件名.html"
+$pdf  = "D:\...\docs\文件名.pdf"
+$uri  = "file:///" + ($html -replace '\\','/')
+& $edge --headless --disable-gpu --no-pdf-header-footer --print-to-pdf="$pdf" "$uri"
+```
+
+助手应**自行执行**导出，并在回复中说明已更新的 `html` / `pdf` 路径。
+
+## 禁止
+
+- 跳过 HTML、仅从 MD 直出 PDF
+- 只改 md 不更新 html/pdf（用户未明确说「只改 md」时）
+- 用工具直接改 `.pdf` 二进制内容

@@ -1,0 +1,62 @@
+---
+description: 改动涉及 Android 原生/AAR 时，任务结束前须重打 AAR 并覆盖到 Unity Plugins（继承前项目流程，适配本仓库）
+alwaysApply: true
+---
+
+# Android AAR 同步 Unity（VRBoardCast）
+
+规则来源：前项目（NanoHTTP / Picstyle）的 **同一套纪律**，在本仓库同样适用：  
+凡改动会进入 **APK 的 AAR / `Plugins/Android` 原生内容**，收尾阶段必须 **构建 + 覆盖**，不能只改源码就结束。
+
+## 本仓库（VRBoardCast）当前与后续
+
+### 现阶段（以 Unity C# + UPM/Plugins 为主）
+
+- 仅改 **`Assets/Broadcast/**` 等 C#**、**`docs/**`**、场景/UI，且**未**改任何 Android Gradle 工程或 `Plugins/Android/*.aar` 时 → **不必**重打 AAR。
+- **LiteNetLib、MemoryPack、UniTask** 等为纯 C# → 不涉及 AAR 重打。
+
+### 触及以下任一时 → 必须重打并覆盖
+
+| 触及内容 | 典型路径 | 动作 |
+|----------|----------|------|
+| Pico / 自定义 Android 库 | `Assets/**/Plugins/Android/*.aar`、独立 `userpackages/**/` Gradle 工程 | 在对应工程 `assembleRelease`，将 `.aar` 覆盖到 Unity 引用的 `Plugins/Android/` |
+| 修改 AAR 内资源 | `src/main/assets`、`res/`、JNI `.so` | 同上，禁止只改源目录不复制产物 |
+| AndroidManifest / 权限 | 插件自带 Manifest 合并 | 改完后打 Android 包验证 Pico 4 |
+
+具体命令以该 Android 子工程内的 **`copyunity.bat` / `gradlew.bat`** 或 README 为准；助手在任务中 **自行执行** 并回复目标路径。
+
+### 本仓库 AndroidProject_SlaveDownload（Slave 片源 HTTP）
+
+| 项 | 值 |
+|----|-----|
+| 源码 | 仓库根 `AndroidProject_SlaveDownload/` |
+| 构建 | `gradlew.bat :slavedownload:assembleRelease` → `copyunity.bat` |
+| Unity 目标 | `Assets/Broadcast/Slave/Plugins/Android/vrboardcast-slave-download.aar` |
+| 设计 | [docs/Slave片源同步-Android-AAR实现.md](../docs/Slave片源同步-Android-AAR实现.md) |
+
+改 Java 后须重打 AAR 并覆盖，再重打 Slave APK。
+
+### 本仓库尚未接入时的约定
+
+- **PICO Unity Integration SDK**、**AVPro Video** 等若通过 Asset/包体导入，升级 SDK 版本后须在文档记录版本号，并在 **Slave（Android）** 构建上验证。
+- 若日后新增类似前项目的 `userpackages/XXX/` Gradle 子工程，在本文件下 **追加一节**：源目录、构建命令、目标 `Plugins/Android` 路径（与 `Packages/manifest.json` 的 `file:` 路径一致）。
+
+---
+
+## 前项目参考（其他仓库路径，勿在本仓库执行除非已拷贝同等结构）
+
+<details>
+<summary>NanoHTTP / Picstyle（HoloCanvas 等仓库）</summary>
+
+**NanoHTTP**：`userpackages/NanoHttpp_73cc89a0/` 执行 `copyunity.bat` →  
+`wangcq327.com.unity.nanohttpd/Plugins/Android/nanohttpd-server.aar`
+
+**Picstyle**：`userpackages/Clmg/AsciiArtAndroid/` 执行  
+`gradlew.bat :libstyleaar:assembleRelease :unitybridge:assembleRelease` →  
+`wangcq327.com.unity.picstyle/Plugins/Android/*.aar`
+
+</details>
+
+## 交给助手的执行要求
+
+- 自行运行构建与复制；回复中说明已执行的命令、产物路径，或说明 **本次为何不必打 AAR**。

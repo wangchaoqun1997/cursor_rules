@@ -1,0 +1,41 @@
+---
+description: 禁止助手直接改 Unity 场景/Prefab YAML，须在收尾写明用户在编辑器中的操作步骤（VRBoardCast）
+alwaysApply: true
+---
+
+# Unity 场景与 Prefab：禁止直接改文件
+
+## 硬约束
+
+- **不要**用工具直接修改、新增或删除以下内容（含 `git add` 场景/Prefab 除非用户明确要求提交已有场景变更）：
+  - `Assets/**/*.unity`
+  - `Assets/**/*.prefab`
+  - 其它 Unity 序列化资源若需 Inspector 绑定（如部分 `.asset` 上的组件引用），同样优先让用户在编辑器里操作
+- **可以**改：C# 脚本、`[SerializeField]` 默认值、`.asmdef`、Manifest、文档、非序列化资源等。
+
+## 需要挂组件 / 拖引用时
+
+在任务回复末尾的 **「## 你需要做的（构建与 Unity）」** 中单独写 **「场景 / Prefab 操作」** 小节（无则写「无场景变更」），格式示例：
+
+```markdown
+### 场景 / Prefab 操作
+
+1. 打开场景：`Assets/Scenes/Android.unity`
+2. 选中物体：`SlavePicoLauncherSetup`（Hierarchy 中搜索）
+3. **Add Component** → `SlaveAndroidAllFilesAccessBootstrap`（命名空间 `VRBoardCast.Slave`）
+4. Inspector：`Request On Start` = 勾选，`Open Settings If Needed` = 勾选
+5. （若有引用）将 `xxx` 拖到 `yyy` 字段
+6. **Ctrl+S** 保存场景
+```
+
+须写清：场景路径、物体名、组件全名、要改的 Inspector 字段与取值、是否保存场景。
+
+## 例外
+
+仅当用户**明确**要求「直接改场景文件 / 帮我改 Android.unity / 提交场景」时，才可编辑 `.unity` / `.prefab`，并在回复中说明已破例及改了哪些 YAML 块。
+
+## 与收尾规则的关系
+
+见 `build-deploy-reminder.mdc`：凡新增 `MonoBehaviour`、`SerializeField`、场景引用，**一律**用本节步骤交给用户在 Unity 里完成，不要代替用户点 Inspector。
+
+新增脚本若由 Unity 自动生成 `.meta` 即可；若助手必须手写 `.meta`，`guid` 须符合 `unity-meta-guid.mdc`（**32 位**小写 hex）。
