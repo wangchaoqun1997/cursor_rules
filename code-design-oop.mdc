@@ -25,19 +25,18 @@ alwaysApply: true
 
 **不要**出现「一个类几千行」的上帝类（God Class），例如把所有网络、同步、UI、配置塞进 `MasterController`。
 
-## 推荐拆分方式（播控工程）
+## 推荐拆分方式（VR局域网控）
 
 ```
-Broadcast.Core/        → 协议 DTO、会话状态机
-Broadcast.Network/     → LiteNetLib 封装，无 Unity 依赖
-Broadcast.Sync/        → TimelineAuthority、纠偏策略、授时
-Broadcast.Master/      → 中控 UI、放映流程编排（薄）
-Broadcast.Slave/        → VR 播放入口、纠偏执行（薄）
-Broadcast.Platform/    → 各平台 IVideoPlayer / IAudioClock 实现
+masterVrLanControl/          → 手机 Master：TCP、UI、指令（薄 Activity）
+slaveBootAutoStart/…/lan/    → gameslauncher :lanagent（连接、启包、会话路由）
+aarForAllSlaves/…/GameInput  → 参数设置数据与会话
+aarForAllSlaves/…/GameLifecycle → 整局阶段上报 API
+aarForAllSlaves/…/Session    → 存活 / 上行 JNI 薄封装
 ```
 
-- **编排类**（Bootstrap、Coordinator）只负责组装与调用，**不写**大段算法与协议细节。
-- **数据类**（Config、Manifest、Packet）与 **行为类**（Transport、SyncController）分离。
+- **编排类**（Bootstrap、Service、Router）只负责组装与调用，**不写**大段业务规则。
+- **数据类**（DTO、Config、Support JSON）与 **行为类**（Client、Tracker、Api）分离。
 
 ## 新增代码前自检
 

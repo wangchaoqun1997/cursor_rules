@@ -1,44 +1,99 @@
 ---
-description: 每次任务收尾须说明 AAR/APK/PC 重编与 Unity 侧用户操作（VRBoardCast）
+description: 任务收尾须列出本项目涉及 App 的重打 AAR/APK、重装与不必安装（VR局域网控）
 alwaysApply: true
 ---
 
-# 收尾：构建、部署与 Unity 操作提示
+# 收尾：构建、安装与 Unity 操作提示
 
-完成**任意代码/资源/场景/协议**相关改动后，回复**末尾必须**增加一节（无涉及则写「无额外构建」）：
+完成**任意代码/资源/场景/协议**相关改动后，回复**末尾必须**增加一节（无涉及则仍写整节，标明全部不必）：
 
 ## 固定标题
 
-使用二级标题：**## 你需要做的（构建与 Unity）**
+使用二级标题：**## 你需要做的（构建与安装）**
 
-## 必须写清的内容
+## 核心原则（硬约束）
 
-按本次 diff **逐项勾选**，只写**本次实际涉及**的项，不要套模板空话：
+1. **按「本项目实际涉及的 App / 产物」逐项写清**，不要只写笼统「须重打」。
+2. 凡本次 diff 触及、且会进设备的产物，必须分别标明：
+   - **是否重新打包**（AAR / 原生 APK / Unity 出包）
+   - **是否重新安装**到手机 / 头显
+   - **不必打包 / 不必安装**的也要写明（避免用户猜）
+3. **Unity 出包由用户本地执行**（助手不能代替点 Build）：须写「请你本地 Unity 打包」，并说明目标（如 gameslauncher / 业务 Slave APK）。
+4. 助手若已替用户打好 AAR 或非 Unity 的 Gradle APK，仍要写清**产物路径**，并提醒**是否要安装**。
 
-| 检查项 | 何时要写 | 写给用户的内容要点 |
-|--------|----------|-------------------|
-| **Android AAR** | 改了 `Plugins/Android/*.aar`、Gradle 子工程、`userpackages/**`、JNI/Manifest/原生资源 | 在哪个目录执行什么命令、`.aar` 覆盖到哪；详见 `aar-sync-unity.mdc` |
-| **Slave APK** | 改了会进头显的逻辑：`Assets/Broadcast/Slave/**`、`Broadcast.Core/Protocol/**`、Slave 场景、`Plugins/Android`（经 AAR 进 APK）、XR/Pico/AVPro Android 相关 | **须重新打 Android 包**；说明场景（如 `Android`）、`BroadcastRoleConfig` 为 Slave |
-| **PC Master 可执行程序** | 改了 `Assets/Broadcast/Master/**`、`WebControl/**`、`StreamingAssets/web/**`、Master 场景 | **须重新 Build Windows（或你们用的 Master 目标平台）**；若只改 Web 静态页，注明是否需重打 EXE 还是仅覆盖 `StreamingAssets/web` |
-| **仅文档 / 仅 Cursor 规则** | 只动 `docs/**`、`.cursor/**` | 写明 **不必** AAR/APK/Unity 构建 |
-| **Unity 编辑器内操作** | 新增组件、序列化字段、场景引用、Prefab、Inspector 绑定、`SerializeField` 拖拽 | 列出用户要在 Unity 里**打开的场景**、**挂到哪个物体**、**Inspector 要拖哪些引用**、是否 Play 模式验证 |
-| **版本配套** | Master/Slave 协议或 DTO 变更 | 写明 **Master 与 Slave 须同版本**，只升一端会怎样 |
+## 本仓库常见 App / 产物对照（VR局域网控）
+
+写收尾时按本次改动勾选；未触及的项写「不必」。**本仓库不是旧项目 VRBoardCast / 影院播控**，不要写 `Assets/Broadcast/**`、PC 播控 EXE 等不存在的产物。
+
+| 产物 / App | 典型路径 | 打包方式 | 安装目标 |
+|------------|----------|----------|----------|
+| **PicoBootAutostart AAR** | `slaveBootAutoStart/` → `Assets/Plugins/Android/PicoBootAutostart.aar` | Gradle / `build.ps1`（助手可执行，见 `aar-sync-unity`） | 不单独装；须进 **gameslauncher APK** |
+| **gameslauncher（眼镜控制面 / Slave 宿主）** | 本 Unity 工程打出的头显 APK（内嵌 `:lanagent`） | **请你本地 Unity 打 Android 包**（含已覆盖的 AAR） | **须重装到头显** |
+| **SlaveExit / 业务侧 AAR** | `aarForAllSlaves/**/Plugins/Android/*.aar` 等 | Gradle；覆盖到 UPM/Plugins | 不单独装；须进 **业务 Slave APK** |
+| **业务 Slave（第三方游戏 Unity）** | `aarForAllSlaves/UnityPackage`（UPM） | **请你本地在业务工程 Unity 打 Android 包** | **须重装到头显**（若改了运行时） |
+| **Master 手机控** | `masterVrLanControl/` | Gradle / `build.ps1` | **须重装到手机**（若改了 Master） |
+| **仅文档 / 仅 Cursor 规则** | `docs/**`、`.cursor/**` | 无 | **全部不必打包、不必安装** |
+
+## 必须写清的内容结构
+
+用短列表，建议固定顺序（无则写「不必」）：
+
+```markdown
+## 你需要做的（构建与安装）
+
+### 重新打包
+- **…**：须 / 不必；命令或「请你本地 Unity 打包」；产物路径
+
+### 重新安装
+- **…**：须重装到手机/头显；或「不必安装」
+
+### 不必动（本次）
+- 列出未涉及的 App，明确写「不必打包、不必安装」
+
+### Unity 编辑器（若有）
+- 场景 / Prefab / Inspector；无则写「无场景变更」
+
+### 版本配套（若有）
+- 哪几端须同版本
+```
+
+## 其它检查项（按需写入对应小节）
+
+| 检查项 | 要点 |
+|--------|------|
+| **Android AAR** | 目录、命令、覆盖路径；见 `aar-sync-unity.mdc` |
+| **Unity 编辑器内操作** | 场景路径、物体、组件、Inspector 字段；遵守 `unity-scene-no-direct-edit.mdc` |
+| **版本配套** | Master / gameslauncher / 业务包协议变更时须同升 |
 
 ## 书写要求
 
-- 用**简体中文**，短列表，每条一行，可执行（「去 Unity → File → Build Settings → Android → Build」级别）。
-- **不要**在「无涉及」时省略整节：写「无额外构建；Unity 无需操作。」
-- AAR 细则不重复长文，写「见 `aar-sync-unity` 规则」并给出**本次**具体路径/命令即可。
-- 助手**不能代替用户在 Unity 里点 Build**时，必须明确写「请你本地执行」。
+- **简体中文**，可执行，一行一事。
+- **不要**在无涉及时省略整节。
+- 「须重装」与「不必安装」成对写清楚，避免只写重打不写装。
+- Unity 相关打包**一律**写「请你本地执行」，不要假装已替用户打好 Unity APK。
 
-## 示例（仅 C# Slave + Master 协议）
+## 示例（改了 lanagent + Master UI + UPM GameLifecycle）
 
 ```markdown
-## 你需要做的（构建与 Unity）
+## 你需要做的（构建与安装）
 
-- **AAR**：不必（未改 `Plugins/Android` / Gradle）。
-- **Slave APK**：须重打；场景 `Assets/Scenes/Android.unity`，角色为 Slave。
-- **PC Master**：须重打 Windows 包（`Broadcast.Master` / 协议变更）。
-- **Unity 编辑器**：若新加了 `[SerializeField]`，请在 Master 场景把 `xxx` 拖到 `yyy`；无则写「无 Inspector 变更」。
-- **配套**：Master 与 Slave 须同时更新，否则旧 Slave 不识别新消息。
+### 重新打包
+- **PicoBootAutostart AAR**：已打并覆盖 `Assets/Plugins/Android/PicoBootAutostart.aar`（或写须执行 `slaveBootAutoStart/build.ps1`）。
+- **gameslauncher（Unity）**：请你本地 Unity 打 Android 包（含新 AAR）。
+- **Master（masterVrLanControl）**：须重打；可用 `masterVrLanControl/build.ps1`。
+- **业务 Slave（Unity）**：请你本地在业务工程打 Android 包（UPM 变更）。
+
+### 重新安装
+- **gameslauncher**：须重装到头显。
+- **Master**：须重装到手机。
+- **业务 Slave**：须重装到头显。
+
+### 不必动（本次）
+- （无其它 App）或写明未触及项「不必打包、不必安装」。
+
+### Unity 编辑器
+- 无场景变更。
+
+### 版本配套
+- gameslauncher、业务包、Master 须同版本联调。
 ```

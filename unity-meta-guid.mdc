@@ -1,5 +1,5 @@
 ---
-description: Unity .meta 的 guid 必须为 32 位小写十六进制，禁止位数错误（VRBoardCast）
+description: Unity .meta 的 guid 必须为 32 位小写十六进制，禁止位数错误
 globs: "**/*.meta"
 alwaysApply: true
 ---

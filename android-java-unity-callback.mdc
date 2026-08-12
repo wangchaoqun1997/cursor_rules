@@ -1,6 +1,6 @@
 ---
 description: Java→C# 必须用 AndroidJavaProxy 等 JNI 回调；禁止 UnityPlayer.UnitySendMessage
-globs: AndroidProject_SlaveDownload/**/*,Assets/Broadcast/Slave/ContentSync/**/*.cs,Assets/Broadcast/Slave/Plugins/**/*
+globs: slaveBootAutoStart/**/*,aarForAllSlaves/**/*
 alwaysApply: true
 ---
 
@@ -15,35 +15,35 @@ alwaysApply: true
 
 `UnitySendMessage` 依赖 GameObject 名、方法名字符串、主线程派发，难测、易丢消息、与 IL2CPP 裁剪/重构不友好；本工程 **一律不用**。
 
-## 推荐模式
+## 推荐模式（本仓库示例：会话 Handler）
 
 ### Java：定义回调接口
 
 ```java
-// com.wangcq327.vrboardcast.slavedownload.IDownloadListener
-public interface IDownloadListener {
-    void onProgress(String taskId, long bytesReceived, long bytesTotal, long bytesPerSecond);
-    void onStateChanged(String taskId, String state, String errorMessage);
+// com.wangcq327.vrboardcast.slaveexit.ISlaveSessionHandler
+public interface ISlaveSessionHandler {
+    void onSessionCommand(String op, String payloadJson);
 }
 ```
 
 ### C#：AndroidJavaProxy 实现并传入 Java
 
 ```csharp
-public sealed class SlaveDownloadListenerProxy : AndroidJavaProxy
+sealed class SessionHandlerProxy : AndroidJavaProxy
 {
-    public SlaveDownloadListenerProxy() : base("com.wangcq327.vrboardcast.slavedownload.IDownloadListener") { }
+    public SessionHandlerProxy()
+        : base("com.wangcq327.vrboardcast.slaveexit.ISlaveSessionHandler") { }
 
-    void onProgress(string taskId, long bytesReceived, long bytesTotal, long bytesPerSecond) { /* 主线程派发 */ }
-    void onStateChanged(string taskId, string state, string errorMessage) { /* ... */ }
+    // ReSharper disable once UnusedMember.Local — JNI
+    void onSessionCommand(string op, string payloadJson) { /* 入队主线程后再处理 */ }
 }
 
-// 启动时：manager.Call("setListener", new SlaveDownloadListenerProxy());
+// handlers.CallStatic("set", new SessionHandlerProxy());
 ```
 
 ### 主线程
 
-Java 回调可能在 **非 Unity 主线程**（如 OkHttp 线程）。在 Proxy 内 **不要**直接调 Unity API；用 `UnityMainThreadDispatcher` / 已有主线程队列 **Enqueue** 后再更新状态。
+Java 回调可能在 **非 Unity 主线程**。在 Proxy 内 **不要**直接调 Unity API；用主线程队列 **Enqueue** 后再更新状态。
 
 ## C# → Java
 
@@ -53,11 +53,11 @@ Java 回调可能在 **非 Unity 主线程**（如 OkHttp 线程）。在 Proxy 
 
 | 方式 | 适用 |
 |------|------|
-| `AndroidJavaProxy` 实现 Java 接口 | **首选**，进度/状态/完成 |
-| C# **主动轮询** Java `getProgress(taskId)` | 被动 Query、低频快照 |
-| 共享内存 / 文件 / Socket | **禁止**为本项目片源同步首选；除非有书面设计例外 |
+| `AndroidJavaProxy` 实现 Java 接口 | **首选** |
+| C# **主动轮询** Java getter | 低频快照 |
+| 共享内存 / 文件 / Socket | 非本项目会话首选 |
 
 ## 相关
 
-- 片源下载 AAR：[docs/Slave片源同步-Android-AAR实现.md](../docs/Slave片源同步-Android-AAR实现.md) §5.2
 - AAR 同步纪律：[aar-sync-unity.mdc](./aar-sync-unity.mdc)
+- 业务会话 / EXIT：[aarForAllSlaves/docs/](../../../aarForAllSlaves/docs/)

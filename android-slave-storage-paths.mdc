@@ -1,59 +1,21 @@
 ---
-description: Slave Android 外存路径禁止硬编码，统一经 AndroidAppStoragePaths / SlaveContentPathResolver
-globs: Assets/Broadcast/**/*.cs,tools/**/*.cs
+description: Android 外存路径禁止硬编码，须经 JNI getExternalFilesDir（若本工程有外存读写）
+globs: aarForAllSlaves/**/*.cs,Assets/**/*.cs
 alwaysApply: false
 ---
 
-# Slave Android 外存路径（禁止硬编码）
+# Android 外存路径（禁止硬编码）
 
 ## 硬约束
 
-在 **Slave / Pico（Android）** 读写应用外存时：
+在 **头显（Android）** 读写应用外存时：
 
-- **禁止**在 C# 里手写或拼接如下路径用于 **写入**（`File.Write*`、`Directory.Create*` 等）：
-  - `/storage/emulated/0/Android/data/<包名>/files/...`
-  - `/sdcard/Android/data/<包名>/files/...`
-  - 任何绕过 JNI 的「看起来和 adb 一样」的绝对路径
-- **禁止**在 Android 真机上使用 `Application.persistentDataPath`（解析为 `/data/user/0/...`，与 adb push 的 `/sdcard/Android/data/<包名>/files` 不一致）。
-- **必须**经 `AndroidAppStoragePaths`（JNI `getExternalFilesDir`）→ `SlaveContentPathResolver` 统一入口。
+- **禁止**在 C# 里手写或拼接 `/storage/emulated/0/Android/data/<包名>/...`、`/sdcard/Android/data/...` 用于 **写入**。
+- **禁止**在 Android 真机上依赖 `Application.persistentDataPath` 与运维 adb 路径混用（二者常不一致）。
+- **必须**经 JNI `Context.getExternalFilesDir`（或工程内已有统一封装）取得可写根路径。
 
-Pico / Android 11+ **scoped storage** 下，硬编码外存路径即使用户目录属于本包，也常报 `Access denied`；`getExternalFilesDir` 由系统授权且与运维 adb 路径对齐。
+Pico / Android 11+ scoped storage 下，硬编码外存路径常报 `Access denied`。
 
-## 本仓库约定
+## 说明
 
-| 用途 | API |
-|------|-----|
-| App 可写外存根 | `AndroidAppStoragePaths.TryGetAppFilesDir()` / `TryGetAppContentRoot("VRBoardcast")` |
-| 外存根目录 | `SlaveContentPathResolver.GetAppWritableContentRoot()` |
-| 外存下某文件（配置等） | `SlaveContentPathResolver.TryResolveAppContentFile(fileName)` |
-| 写入 `wificonfig.json` / `slave_device_id.json` | 上者；参考 `SlavePicoWifiConfigStore`、`SlaveDeviceIdStore` |
-| 找片（含 legacy 公共目录只读回退） | `FindByFileName` / `GetSearchRoots()` |
-| 运维 / adb / 文档中的展示路径 | 可写 `/sdcard/Android/data/<包名>/files/VRBoardcast/`（**仅文档与 tools**，不进运行时 C#） |
-
-包名以 `Application.identifier` / `ProjectSettings` 为准；**运行时 C# 禁止**用包名字符串拼接 `/storage/...`、`/sdcard/Android/data/...`。
-
-## 允许出现 adb 字面路径的唯一位置
-
-- `tools/VrBoardCastOps/ToolsPaths.cs`、bat、README 等运维说明（**不进** `Assets/Broadcast/**` 运行时逻辑）。
-
-Legacy 公共外存只读回退用 `AndroidAppStoragePaths.TryGetLegacyPublicContentRoot()`，不得硬编码 `/storage/emulated/0/...`。
-
-Slave 运行时外存仅三处：① WiFi 配置 ② 座位号 ③ 片源找片（`SlaveCoordinator` → `FindByFileName`）。新增 IO 须走 `TryResolveAppContentFile` 或 `GetAppWritableContentRoot`，照 `SlavePicoWifiConfigStore`、`SlaveDeviceIdStore` 模式。
-
-## 反例 / 正例
-
-```csharp
-// ❌ 写入 — 会在 Pico 上 Access denied
-var path = $"/storage/emulated/0/Android/data/{Application.identifier}/files/VRBoardcast/wificonfig.json";
-File.WriteAllText(path, json);
-
-// ❌ 写入 — 与 adb 路径不一致
-File.WriteAllText(Path.Combine(Application.persistentDataPath, "VRBoardcast", "wificonfig.json"), json);
-
-// ✅ 写入
-string path = SlaveContentPathResolver.TryResolveAppContentFile("wificonfig.json");
-File.WriteAllText(path, json);
-
-// ✅ 找片
-string film = SlaveContentPathResolver.FindByFileName(filmTitle);
-```
+本规则随工程需要启用；当前主路径为 **VR局域网控**（Master / gameslauncher / 业务 UPM），若新增外存配置读写，优先复用已有路径封装，勿从旧「VRBoardCast 播控」工程照搬硬编码。
