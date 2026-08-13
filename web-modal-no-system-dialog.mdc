@@ -1,0 +1,46 @@
+---
+description: Web 弹框禁用系统 dialog，统一自研 UI + 半透明 mask（点 mask 不关、居中）
+alwaysApply: true
+---
+
+# Web 弹框：禁止系统框，统一自研 Modal
+
+凡改动 **Web 页面**（HTML / CSS / 前端 JS 等）时遵守本节。
+
+## 硬约束
+
+1. **禁止**使用浏览器系统弹框，除非用户在本轮**明确**要求可用系统框：
+   - `window.alert` / `alert(...)`
+   - `window.confirm` / `confirm(...)`
+   - `window.prompt` / `prompt(...)`
+2. 确认、提示、表单、二次验证等，**一律**用页面自带的 Modal UI（与当前页面已有弹框视觉一致）。
+3. Modal **必须**带半透明遮罩（mask / backdrop），例如 `rgba(0,0,0,0.45)`～`0.55`。
+4. **点击 mask 不关闭**弹框；只能通过弹框内按钮（确定 / 取消 / 关闭等）关闭。
+5. 弹框内容区**默认居中**（相对视口）：如 `position: fixed; left: 50%; top: 50%; transform: translate(-50%, -50%);`（或等价 flex/grid 居中）。
+
+## 推荐结构
+
+```html
+<div class="backdrop" id="backdrop-xxx"><!-- 半透明全屏 mask -->
+  <div class="modal" role="dialog" aria-modal="true">
+    <!-- 标题 / 正文 / 操作按钮 -->
+  </div>
+</div>
+```
+
+- **不要**给 backdrop 绑「点击自身就 `hide`」；若历史代码有 `ev.target === backdrop → close`，新功能不要照抄，改旧码时一并去掉（除非用户明示「点遮罩关闭」）。
+- 打开时建议锁滚动（如 `html/body` 加 modal-open 类），避免背后页面滚动穿透。
+
+## 反例 / 正例
+
+```javascript
+// ❌ 系统框
+if (!confirm("确定执行？")) return;
+
+// ✅ 自研确认框：显示带 mask 的居中 modal，由「确定」「取消」按钮 resolve
+openConfirmModal({ message: "...", onOk() { /* ... */ } });
+```
+
+## 例外
+
+仅当用户本轮明确说「可以用 alert/confirm」「系统弹框即可」时，才允许系统框，并在回复中注明是按用户明示破例。
